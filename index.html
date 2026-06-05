@@ -6,40 +6,48 @@
 <title>Interval Beep Timer</title>
 
 <style>
-    body{
-        font-family: Arial, sans-serif;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        min-height:100vh;
-        background:#f4f4f4;
-    }
+body{
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+}
 
-    .container{
-        background:white;
-        padding:30px;
-        border-radius:10px;
-        box-shadow:0 0 10px rgba(0,0,0,0.2);
-        text-align:center;
-        width:400px;
-    }
+.container{
+    background:#fff;
+    padding:30px;
+    border-radius:12px;
+    box-shadow:0 0 15px rgba(0,0,0,0.15);
+    text-align:center;
+    width:420px;
+}
 
-    #timer{
-        font-size:38px;
-        font-weight:bold;
-        margin:20px 0;
-        color:#333;
-    }
+h2{
+    margin-top:0;
+}
 
-    input, select, button{
-        padding:10px;
-        margin:5px;
-        font-size:16px;
-    }
+#timer{
+    font-size:40px;
+    font-weight:bold;
+    margin:25px 0;
+    color:#222;
+}
 
-    button{
-        cursor:pointer;
-    }
+input, select{
+    padding:10px;
+    font-size:16px;
+    margin:5px;
+}
+
+button{
+    padding:10px 15px;
+    font-size:16px;
+    margin:5px;
+    cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -49,27 +57,66 @@
 
     <div id="timer">00:00:00:000</div>
 
-    <input type="number" id="intervalInput" min="1" placeholder="Enter Interval">
+    <input type="number"
+           id="intervalInput"
+           min="1"
+           placeholder="Enter Interval">
 
     <select id="unit">
         <option value="seconds">Seconds</option>
         <option value="minutes">Minutes</option>
     </select>
 
-    <br>
+    <br><br>
 
     <button onclick="startTimer()">Start</button>
     <button onclick="stopTimer()">Stop</button>
     <button onclick="resetTimer()">Reset</button>
+    <button onclick="testBeep()">Test Beep</button>
 </div>
 
 <script>
+
 let startTime;
 let timerInterval;
 let beepInterval;
 let running = false;
+let audioContext;
 
-function formatTime(ms){
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+}
+
+function beep() {
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = 1000;
+
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+
+    oscillator.start();
+
+    oscillator.stop(audioContext.currentTime + 0.3);
+}
+
+function testBeep() {
+    initAudio();
+    beep();
+}
+
+function formatTime(ms) {
 
     let hours = Math.floor(ms / 3600000);
     let minutes = Math.floor((ms % 3600000) / 60000);
@@ -84,44 +131,22 @@ function formatTime(ms){
     );
 }
 
-function updateTimer(){
+function updateTimer() {
     let elapsed = Date.now() - startTime;
     document.getElementById("timer").textContent =
         formatTime(elapsed);
 }
 
-function beep(){
+function startTimer() {
 
-    const audioContext =
-        new (window.AudioContext || window.webkitAudioContext)();
+    initAudio();
 
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.frequency.value = 1000;
-    oscillator.type = "sine";
-
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-
-    oscillator.start();
-
-    setTimeout(()=>{
-        oscillator.stop();
-        audioContext.close();
-    },200);
-}
-
-function startTimer(){
-
-    if(running) return;
+    if (running) return;
 
     let value =
         parseInt(document.getElementById("intervalInput").value);
 
-    if(!value || value <= 0){
+    if (!value || value <= 0) {
         alert("Please enter a valid interval.");
         return;
     }
@@ -139,26 +164,26 @@ function startTimer(){
 
     timerInterval = setInterval(updateTimer, 10);
 
-    beepInterval = setInterval(()=>{
+    beepInterval = setInterval(() => {
         beep();
     }, intervalMs);
 }
 
-function stopTimer(){
-
+function stopTimer() {
     running = false;
 
     clearInterval(timerInterval);
     clearInterval(beepInterval);
 }
 
-function resetTimer(){
+function resetTimer() {
 
     stopTimer();
 
     document.getElementById("timer").textContent =
         "00:00:00:000";
 }
+
 </script>
 
 </body>
